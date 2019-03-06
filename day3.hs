@@ -1,4 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
+module Day3 where
+
 import Text.Regex.Applicative()
 import Text.Regex.Applicative.Common
 import qualified Data.Map as M
