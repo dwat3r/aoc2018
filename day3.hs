@@ -16,6 +16,12 @@ data Data = Data {
   ysize :: Int
   } deriving Show
 
+parseLine = Data <$> (sym '#' *> decimal)
+            <*> (" @ "  *> decimal)
+            <*> (","    *> decimal)
+            <*> (": "   *> decimal)
+            <*> ("x"    *> decimal)
+
 withInput f = readFile "day3.txt" 
     >>= pure . f . catMaybes . map (=~ parseLine) . lines
 
@@ -31,12 +37,6 @@ notOverlaps = head . S.toList . foldl1 (\nrs1 nrs2 -> nrs1 S.\\ nrs2) . M.elems 
                 concatMap (\d ->  (,,) <$>  [xoff d .. xoff d + xsize d - 1] <*> 
                                             [yoff d .. yoff d + ysize d - 1] <*>
                                             [nr d])
-
-parseLine = Data <$> (sym '#' *> decimal)
-            <*> (" @ "  *> decimal)
-            <*> (","    *> decimal)
-            <*> (": "   *> decimal)
-            <*> ("x"    *> decimal)
 
 sample = [
     Data 1 1 3 4 4,
