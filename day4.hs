@@ -5,9 +5,12 @@ import Text.Regex.Applicative
 import Text.Regex.Applicative.Common
 import Common
 import Data.List
+import Data.Function(on)
 import Data.Text.Prettyprint.Doc
 import qualified Data.Map as M
+import qualified Data.Set as S
 import Control.Lens
+import Debug.Trace
 
 data Action = BeginsShift { nr :: Int } | 
               FallsAsleep | 
@@ -61,6 +64,7 @@ sample =
   , Data {month = 11, day = 5, hour = 0, minute = 45, action = FallsAsleep}
   , Data {month = 11, day = 5, hour = 0, minute = 55, action = WakesUp} ]
 
+daysInMonths :: M.Map Int Int
 daysInMonths = M.fromList
   [
     (1, 31),
@@ -78,9 +82,9 @@ daysInMonths = M.fromList
   ]
 
 succDay :: Data -> Data
-succDay d@Data{..} | daysInMonths M.! month == day && month == 12 = Data 1 1 hour minute action
-                   | daysInMonths M.! month == day = Data (month + 1) 1 hour minute action
-                   | otherwise = Data month (day + 1) hour minute action
+succDay Data{..} | daysInMonths M.! month == day && month == 12 = Data 1 1 hour minute action
+                 | daysInMonths M.! month == day = Data (month + 1) 1 hour minute action
+                 | otherwise = Data month (day + 1) hour minute action
 
 removeBeforeMidnight :: [Data] -> [Data]
 removeBeforeMidnight = map go
@@ -88,16 +92,33 @@ removeBeforeMidnight = map go
     go d@Data{..} | hour == 23 = succDay (Data month day 0 0 action)
                   | hour >  0  = Data month day 0 59 action
                   | otherwise  = d
-
-intervals = M.map (foldl segment (False, M.empty)) .
+  
+intervals = 
+  M.map (M.map (segment (True, 0, M.empty) . tail) . slice) .
   snd . foldl convert (0, M.empty) . sort . 
   removeBeforeMidnight
   where 
     convert (nr1, m) Data{..} = case action of 
-      BeginsShift nr2 -> (nr2, M.insertWith (++) nr2 [(month, day, hour, minute)] m)
-      FallsAsleep     -> (nr1, M.insertWith (++) nr1 [(month, day, hour, minute)] m)
-      WakesUp         -> (nr1, M.insertWith (++) nr1 [(month, day, hour, minute)] m)
-    segment (b, m) (mo, d, h, mi) = undefined
-
-
+      BeginsShift nr2 -> (nr2, M.insertWith (flip (++)) nr2 [(month, day, hour, minute)] m)
+      FallsAsleep     -> (nr1, M.insertWith (flip (++)) nr1 [(month, day, hour, minute)] m)
+      WakesUp         -> (nr1, M.insertWith (flip (++)) nr1 [(month, day, hour, minute)] m)
     
+    slice = M.fromListWith (flip (++)) . map (\(mo, d, _, mi) -> ((mo, d), [mi]))
+
+    segment (b, n, s) [] | n <= 59  = segment (b, n+1, M.insert n b s) []
+                         | n == 60  = s
+    segment (b, n, s) (mi:ds) | n < mi  = segment (b, n+1, M.insert n b s) (mi:ds)
+                              | n == mi = segment (not b, n+1, M.insert n (not b) s) ds
+
+nrSleeper =
+  fst . maximumBy (compare `on` snd) . M.toList .
+  M.map (M.foldl (+) 0 . M.map (M.size . M.filter not)) .
+  intervals
+    
+bestTime s = 
+  fst $ maximumBy (compare `on` snd) $ M.toList $
+  M.foldl (M.unionWith (+)) M.empty $ 
+  M.map (M.map (const 1) . M.filter not) $
+  intervals s M.! nrSleeper s
+
+part1 s = nrSleeper s * bestTime s
