@@ -110,15 +110,29 @@ intervals =
     segment (b, n, s) (mi:ds) | n < mi  = segment (b, n+1, M.insert n b s) (mi:ds)
                               | n == mi = segment (not b, n+1, M.insert n (not b) s) ds
 
+sndMax = maximumBy (compare `on` snd)
+
 nrSleeper =
-  fst . maximumBy (compare `on` snd) . M.toList .
+  fst . sndMax . M.toList .
   M.map (M.foldl (+) 0 . M.map (M.size . M.filter not)) .
   intervals
     
 bestTime s = 
-  fst $ maximumBy (compare `on` snd) $ M.toList $
+  fst $ sndMax $ M.toList $
   M.foldl (M.unionWith (+)) M.empty $ 
   M.map (M.map (const 1) . M.filter not) $
   intervals s M.! nrSleeper s
 
 part1 s = nrSleeper s * bestTime s
+
+
+part2 =
+  (\(nr,(mi, _)) -> nr * mi) .
+  maximumBy (compare `on` (snd . snd)) . M.toList .
+  M.map (sndMax . M.toList) .
+  M.filter (not . M.null) .
+  M.map (
+    M.foldl (M.unionWith (+)) M.empty .
+    M.map (M.map (const 1) . M.filter not)
+    ) .
+  intervals
