@@ -2,6 +2,7 @@ module Day5 where
 
 import Data.Char
 import Data.List
+import Data.Function
 
 withInput :: (String -> b) -> FilePath -> IO b
 withInput f input = readFile input >>= pure . f
@@ -31,7 +32,12 @@ shrink' (c1:c2:cs) | flipCase c1 == c2 = shrink' cs
 part1 = withInput (length . shrink) "day5.txt"
 
 
-shrink'' = 
---  concat .
-  filter (\s -> length s /= 2 || flipCase (s !! 0) /= (s !! 1)) . 
-  groupBy (\c1 c2 -> flipCase c1 == c2)
+part2 = withInput (bestShrink . shrink) "day5.txt"
+
+bestShrink s = 
+  length $
+  minimumBy (compare `on` length) $
+  map shrink $ 
+  map (\(c, s) -> 
+    filter (\c2 -> c /= c2 && toUpper c /= c2) s) $
+  zip ['a'..'z'] $ repeat s
