@@ -67,3 +67,12 @@ closestTo points =
 
 part1 ps = closestTo ps
 
+part2 within points =
+  length $
+  filter (\sp -> within > sum (map (manhattanDist sp) points)) $
+  Point <$> [lx..hx] <*> [ly..hy]
+    where
+      lx = x $ minimumBy (compare `on` x) points
+      ly = y $ minimumBy (compare `on` y) points
+      hx = x $ maximumBy (compare `on` x) points
+      hy = y $ maximumBy (compare `on` y) points
