@@ -43,7 +43,7 @@ instance InputParser Data where
                     FallsAsleep <$ "falls asleep" <|>
                     WakesUp <$ "wakes up"
 
--- parsed with: withInput (pretty . (id :: [Data] -> [Data])) "day4_sample.txt"
+--parsed with: withInput (pretty . (id :: [Data] -> [Data])) "day4_sample.txt"
 sample :: [Data]
 sample = 
   [ Data {month = 11, day = 1, hour = 0, minute = 0, action = BeginsShift {nr = 10}}

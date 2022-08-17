@@ -30,28 +30,35 @@ sample = [
   , Step {prev = 'D', next = 'E'}
   , Step {prev = 'F', next = 'E'} ]
 
+buildGraph :: [Step] -> (M.Map Char (S.Set Char), M.Map Char (S.Set Char), S.Set Char)
+buildGraph = 
+  (\(l, r, m, mr) -> (m, mr, S.difference l r)) .
+  foldl' go (S.empty, S.empty, M.empty, M.empty)
+  where
+    go (lefts, rights, m, mr) Step{..} = 
+      ( 
+        S.insert prev lefts,
+        S.insert next rights,
+        M.insertWith (S.union) prev (S.singleton next) m,
+        M.insertWith (S.union) next (S.singleton prev) mr
+      )
 
+part1 = topoSort . buildGraph
+  where
+    topoSort (m, mr, avail) | S.null avail = []
+                            | otherwise = root:(
+                                topoSort (
+                                  (M.adjust S.deleteMin root m),
+                                  (M.map (S.delete root) mr),
+                                  (S.delete root $ 
+                                    if M.member root m 
+                                      then S.union (m M.! root) avail
+                                      else avail)
+                                  ))
+      where
+        root = S.findMin $ S.filter (\s -> all S.null $ maybeToList $ mr M.!? s) avail
 
-part1 input = 
-  (\(l, r, m, mr) -> topoSort m mr $ S.difference l r) $
-  foldl' buildMap (S.empty, S.empty, M.empty, M.empty) input
-    where
-      buildMap (lefts, rights, m, mr) Step{..} = 
-        ( 
-          S.insert prev lefts,
-          S.insert next rights,
-          M.insertWith (S.union) prev (S.singleton next) m,
-          M.insertWith (S.union) next (S.singleton prev) mr
-        )
-      topoSort m mr avail | S.null avail = []
-                          | otherwise = root:(
-                              topoSort
-                              (M.adjust S.deleteMin root m) 
-                              (M.map (S.delete root) mr)
-                              (S.delete root $ 
-                                if M.member root m 
-                                  then S.union (m M.! root) avail
-                                  else avail)
-                              )
-        where
-          root = S.findMin $ S.filter (\s -> all S.null $ maybeToList $ mr M.!? s) avail
+part2 pc = topoSort (replicate pc 0) 0 . buildGraph
+  where
+    topoSort ts t (m, mr, avail) | S.null avail = t
+                                 | otherwise    = undefined
